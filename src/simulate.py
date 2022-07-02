@@ -10,7 +10,8 @@ import gui
 class GameOfLife(gui.GUI):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        seed = 2106
+
+        seed = self.argv.seed
         rng = numpy.random.default_rng(seed)
 
         self.display_prog = self.ctx.program(
@@ -100,17 +101,23 @@ class GameOfLife(gui.GUI):
         self.display_prog['Texture1'].value = 0
         self.display_prog['Texture2'].value = 1
 
-        self.w_width = 4096
-        self.w_height = 4096
-        self.world = numpy.round(rng.random((self.w_width, self.w_height, 4))).astype('f4')
-        # self.world = numpy.round(rng.normal(loc=0.5, scale=0.5 / 3, size=(self.w_width, self.w_height, 4))).astype('f4')
-        # self.world = numpy.round(rng.exponential(scale=1, size=(self.w_width, self.w_height, 4))).astype('f4')
+        self.w_width = self.argv.width
+        self.w_height = self.argv.height
+
+        if self.argv.distribution == 'uniform':
+            self.world = numpy.round(rng.random((self.w_width, self.w_height, 4))).astype('f4')
+        elif self.argv.distribution == 'normal':
+            self.world = numpy.round(rng.normal(loc=0.5, scale=0.5 / 3, size=(self.w_width, self.w_height, 4))).astype('f4')
+        elif self.argv.distribution == 'exponential':
+            self.world = numpy.round(rng.exponential(scale=1, size=(self.w_width, self.w_height, 4))).astype('f4')
+        else:
+            raise NotImplementedError
         self.world[:,:, 1] = 1
 
         self.texture_world = self.ctx.texture((self.w_width, self.w_height), 4, self.world.tobytes(), dtype='f4')
         self.texture_world.filter = moderngl.NEAREST, moderngl.NEAREST
 
-        self.texture_colormap = self.load_texture_2d(f'life_00.png')
+        self.texture_colormap = self.load_texture_2d(self.argv.colormap)
 
         vertices = numpy.array(
             [
@@ -136,7 +143,7 @@ class GameOfLife(gui.GUI):
         self.recording_session = 0
         self.recording_frame = 0
 
-        self.output_pattern = os.path.join('..', 'data', 'output', 'gol_{0}.{1}.png')
+        self.output_pattern = self.argv.output
 
 
     def key_event(self, key, action, modifiers):
